@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 require 'puppet'
-require 'getoptlong'
 require 'pathname'
+require 'optparse'
 
 Puppet[:config] = "/etc/puppet/puppet.conf"
 Puppet.parse_config
@@ -27,47 +27,67 @@ module Constants
     graph          = false
     pluginsync     = false
 "
-Usage = "Manitest compiles a manifest using another hosts facts.
-  manitest [--debug|-d] [--environment|-e] [--puppetclass|-p]
-           [--tmpdir|-t] [--yamlnodefile|-n] [--verbose|-v] [--help|-h]
-"
 end
 
-option   = {}
+options = {}
+optparse = OptionParser.new do |opts|
+  # Set a banner, displayed at the top
+  # of the help screen.
+  opts.define_head "Manitest compiles a manifest using another hosts facts."
+  opts.banner = "Usage: #{$0}"
+  opts.separator ""
 
-opts = GetoptLong.new(
-                      [ "--verbose",              "-v", GetoptLong::NO_ARGUMENT ],
-                      [ "--debug",                "-d", GetoptLong::NO_ARGUMENT ],
-                      [ "--environment",          "-e", GetoptLong::REQUIRED_ARGUMENT ],
-                      [ "--devroot",              "-r", GetoptLong::REQUIRED_ARGUMENT ],
-                      [ "--tmpdir",               "-t", GetoptLong::REQUIRED_ARGUMENT ],
-                      [ "--yamlnodefile",         "-n", GetoptLong::REQUIRED_ARGUMENT ],
-                      [ "--help",                 "-h", GetoptLong::NO_ARGUMENT ]
-)
+   # Define the options, and what they do
+  options[:verbose] = false
+  opts.on( '-v', '--verbose', 'Output more information' ) do
+    options[:verbose] = true
+  end
+  options[:debug] = false
+  opts.on( '-d', '--debug', 'Output the full puppet debug' ) do
+    options[:debug] = true
+  end
+  opts.on( '-e', '--environment', 'Override node environment' ) do |env|
+    options[:environment] = env
+  end
+  options[:tmpdir] = "/tmp/"
+  opts.on( '-t', '--tmpdir DIR', 'Where to write temp files - defaults to /tmp' ) do |tmp|
+    options[:tmpdir] = tmp
+    # Ensure that tmpdir has a trailing slash
+    options[:tmpdir] += "/" unless options[:tmpdir]=~/\/$/
+  end
+  options[:node] = ""
+  opts.on( '-n', '--node FILE', 'YAML node file to use' ) do |file|
+    options[:node] = file
+  end
+  options[:pclasses] = []
+  opts.on( '-c', '--class CLASSA,CLASSB', 'node classes to use' ) do |c|
+    options[:pclasses] = c.split(",")
+  end
 
-# process the parsed options
-for opt, arg in opts
-  option[(opt.match(/..(.*)/)[1]).to_sym] = arg
+  opts.on( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+end
+optparse.parse!
+
+if options[:node].empty?
+  warn "Must provide node name, use -h for more info"
+  exit 1
 end
 
-if option[:help]
-  puts Constants::Usage
-  exit(0)
+options[:node] += ".yaml" unless options[:node]=~/yaml$/
+unless File.exists? options[:node]
+  warn "Unable to find file #{options[:node]}" unless File.exists? options[:node]
+  exit 1
+end
+node = YAML.load_file options[:node]
+unless node.is_a?(Puppet::Node)
+  warn "Invalid node file - you should use something from /var/lib/puppet/yaml/node directory"
+  exit 1
 end
 
-if option[:yamlnodefile]
-  option[:yamlnodefile]  += ".yaml" unless option[:yamlnodefile]=~/yaml$/
-else
-  warn("must provide a node yaml file")
-  puts Constants::Usage
-  exit(1)
-end
-
-begin
-  node = YAML.load_file option[:yamlnodefile]
-  raise "Invalid node file - you should use something from /var/lib/puppet/yaml/node directory" unless node.is_a?(Puppet::Node)
-end
-environment=option[:environment] || node.environment.to_sym
+environment=options[:environment] || node.environment.to_sym
 # export all parameters as facter env - overriding our real system values
 # this also works for external nodes parameters
 node.parameters.each do |k,v|
@@ -78,8 +98,6 @@ node.parameters.each do |k,v|
   end
 end
 
-# Ensure that tmpdir has a trailing slash
-option[:tmpdir] += "/" unless option[:tmpdir]=~/\/$/
 
 # find env module path
 conf = Puppet.settings.instance_variable_get(:@values)
@@ -97,8 +115,8 @@ puppet_conf  = Constants::Puppet_conf_tmpl.dup
 puppet_conf << "\tmodulepath   = #{modulepath}\n"
 
 # Write out a puppet.conf and a node.conf.
-conf = Pathname.new(option[:tmpdir]) + ".tmp_puppet.conf"
-nodefile = Pathname.new(option[:tmpdir]) + ".tmp_node.pp"
+conf = Pathname.new(options[:tmpdir]) + ".tmp_puppet.conf"
+nodefile = Pathname.new(options[:tmpdir]) + ".tmp_node.pp"
 conf.open(File::CREAT|File::WRONLY|File::TRUNC) {|f| f.write puppet_conf}
 
 nodefile.open(File::CREAT|File::WRONLY|File::TRUNC) do |f|
@@ -111,23 +129,23 @@ nodefile.open(File::CREAT|File::WRONLY|File::TRUNC) do |f|
 end
 
 cmd = "/usr/bin/puppet --config #{conf} --certname #{node.name} --debug #{nodefile} 2>&1"
-puts cmd if option[:debug]
+puts cmd if options[:debug]
 report = []
 status = "broken"
 IO.popen(cmd) do |puppet|
   while not puppet.eof?
     line = puppet.readline
     report << line
-    puts line if option[:debug]
+    puts line if options[:debug]
     if line=~/Finishing transaction/ and report[-2]=~/Creating default schedules/
       status = "OK"
       break
     end
   end
 end
-if option[:verbose]
+if options[:verbose]
   puts "The manifest compilation for #{node.name} is #{status}"
 end
-conf.unlink unless option[:debug]
-nodefile.unlink unless option[:debug]
+conf.unlink unless options[:debug]
+nodefile.unlink unless options[:debug]
 exit(status == "OK" ? 0 : -1)
