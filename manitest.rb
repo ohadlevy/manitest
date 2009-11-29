@@ -118,11 +118,12 @@ puppet_conf << "\tmodulepath   = #{modulepath}\n"
 conf = Pathname.new(options[:tmpdir]) + ".tmp_puppet.conf"
 nodefile = Pathname.new(options[:tmpdir]) + ".tmp_node.pp"
 conf.open(File::CREAT|File::WRONLY|File::TRUNC) {|f| f.write puppet_conf}
+klasses = options[:pclasses] || node.classes
 
 nodefile.open(File::CREAT|File::WRONLY|File::TRUNC) do |f|
   f.puts "node '#{node.name}' {"
   f.puts "import '/etc/puppet/manifests/site.pp'"
-  node.classes.each do |c|
+  klasses.each do |c|
     f.puts "\tinclude #{c}"
   end
   f.puts "}"
@@ -143,7 +144,7 @@ IO.popen(cmd) do |puppet|
     end
   end
 end
-if options[:verbose]
+if options[:verbose] or  options[:debug]
   puts "The manifest compilation for #{node.name} is #{status}"
 end
 conf.unlink unless options[:debug]
