@@ -87,6 +87,13 @@ unless node.is_a?(Puppet::Node)
   exit 1
 end
 
+klasses = options[:pclasses] || node.classes
+
+if klasses.size == 0
+  warn "Your node file does not contain classes, add some or specify them in the command line"
+  exit 1
+end
+
 environment=options[:environment] || node.environment.to_sym
 # export all parameters as facter env - overriding our real system values
 # this also works for external nodes parameters
@@ -118,8 +125,6 @@ puppet_conf << "\tmodulepath   = #{modulepath}\n"
 conf = Pathname.new(options[:tmpdir]) + ".tmp_puppet.conf"
 nodefile = Pathname.new(options[:tmpdir]) + ".tmp_node.pp"
 conf.open(File::CREAT|File::WRONLY|File::TRUNC) {|f| f.write puppet_conf}
-klasses = options[:pclasses] || node.classes
-
 nodefile.open(File::CREAT|File::WRONLY|File::TRUNC) do |f|
   f.puts "node '#{node.name}' {"
   f.puts "import '/etc/puppet/manifests/site.pp'"
