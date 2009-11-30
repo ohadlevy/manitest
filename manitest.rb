@@ -112,13 +112,16 @@ end
 # find env module path
 conf = Puppet.settings.instance_variable_get(:@values)
 unless conf[environment][:modulepath].nil?
-  modulepath =  conf[environment][:modulepath]
+  modulepath = conf[environment][:modulepath]
 else
   Puppet.settings.eachsection do |p|
-    path=Puppet.settings.instance_variable_get(:@values)[p][:modulepath]
+    path=conf[p][:modulepath]
     modulepath = path and break unless path.nil?
   end
 end
+
+# if no module path is defined, use the default one
+modulepath = Puppet.settings[:modulepath] if modulepath.nil? or modulepath.empty?
 
 # Set the dummy puppet.conf
 puppet_conf  = Constants::Puppet_conf_tmpl.dup
