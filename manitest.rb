@@ -104,7 +104,7 @@ node.parameters.each do |k,v|
     ENV["facter_#{k}"]=v
     puts "%s=>%s" % [k,v] if options[:debug]
   rescue
-    warn "failed to set fact #{k} => #{v}"
+    warn "failed to set fact #{k} => #{v}" if options[:debug]
   end
 end
 
