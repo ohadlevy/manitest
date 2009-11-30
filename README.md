@@ -19,7 +19,7 @@ Manitest compiles a manifest using another hosts facts.
 $ ./manitest.rb -n /var/lib/puppet/yaml/node/hostname.yaml -v
 Setting up environment: development
 Setting up facts:
-The manifest compilation for hostname.yaml is OK
+The manifest compilation for hostname is OK
 $ echo $?
 0
 </pre>
