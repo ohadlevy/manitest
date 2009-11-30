@@ -94,7 +94,7 @@ if klasses.size == 0
   exit 1
 end
 
-environment=options[:environment].to_sym || node.environment.to_sym
+environment=(options[:environment] || node.environment).to_sym
 puts "Setting up environment: #{environment}" if options[:verbose] or options[:debug]
 # export all parameters as facter env - overriding our real system values
 # this also works for external nodes parameters
