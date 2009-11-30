@@ -1,6 +1,5 @@
-h1. Manitest compiles a manifest using another hosts facts
-
-h2. Usage: ./manitest.rb
+# Manitest compiles a manifest using another hosts facts
+## Usage: ./manitest.rb
 
 Manitest compiles a manifest using another hosts facts.
 
@@ -13,9 +12,9 @@ Manitest compiles a manifest using another hosts facts.
     -h, --help                       Display this screen
 
 
-h2. example runs:
+## example runs:
 
-h3. verbose mode
+### verbose mode
 
 $ ./manitest.rb -n /var/lib/puppet/yaml/node/hostname.yaml -v
 Setting up environment: development
@@ -24,7 +23,7 @@ The manifest compilation for hostname.yaml is OK
 $ echo $?
 0
 
-h3. debug mode 
+### debug mode 
 
 $  ./manitest.rb -n /var/lib/puppet/yaml/node/hostname.yaml -d -e global_puppetmaster
 Setting up environment: global_puppetmaster
@@ -37,7 +36,7 @@ puppetmaster=>puppet
 Could not find class xyz in namespaces zzz at /etc/puppet/modules/zzz/manifests/init.pp:7 on node hostname
 The manifest compilation for hostname is broken
 
-h2. known limitations
+## known limitations
 
 It seems that this script will work only on the same architecture, as puppet internally tries to load the provides automatically, I'm not sure if its possible to run a Solaris manifest on a Linux host.
 
