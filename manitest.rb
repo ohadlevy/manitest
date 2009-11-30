@@ -87,7 +87,7 @@ unless node.is_a?(Puppet::Node)
   exit 1
 end
 
-klasses = options[:pclasses] || node.classes
+klasses = options[:pclasses].size == 0 ? node.classes :  options[:pclasses]
 
 if klasses.size == 0
   warn "Your node file does not contain classes, add some or specify them in the command line"
@@ -95,11 +95,14 @@ if klasses.size == 0
 end
 
 environment=options[:environment] || node.environment.to_sym
+puts "Setting up environment: #{environment}" if options[:verbose] or options[:debug]
 # export all parameters as facter env - overriding our real system values
 # this also works for external nodes parameters
+puts "Setting up facts:" if options[:verbose] or options[:debug]
 node.parameters.each do |k,v|
   begin
-    ENV[k]=v
+    ENV["facter_#{k}"]=v
+    puts "%s=>%s" % [k,v] if options[:verbose] or options[:debug]
   rescue
     warn "failed to set fact #{k} => #{v}"
   end
