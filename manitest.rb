@@ -46,7 +46,7 @@ optparse = OptionParser.new do |opts|
   opts.on( '-d', '--debug', 'Output the full puppet debug' ) do
     options[:debug] = true
   end
-  opts.on( '-e', '--environment', 'Override node environment' ) do |env|
+  opts.on( '-e', '--environment ENV', 'Override node environment' ) do |env|
     options[:environment] = env
   end
   options[:tmpdir] = "/tmp/"
@@ -94,7 +94,7 @@ if klasses.size == 0
   exit 1
 end
 
-environment=options[:environment] || node.environment.to_sym
+environment=options[:environment].to_sym || node.environment.to_sym
 puts "Setting up environment: #{environment}" if options[:verbose] or options[:debug]
 # export all parameters as facter env - overriding our real system values
 # this also works for external nodes parameters
@@ -102,7 +102,7 @@ puts "Setting up facts:" if options[:verbose] or options[:debug]
 node.parameters.each do |k,v|
   begin
     ENV["facter_#{k}"]=v
-    puts "%s=>%s" % [k,v] if options[:verbose] or options[:debug]
+    puts "%s=>%s" % [k,v] if options[:debug]
   rescue
     warn "failed to set fact #{k} => #{v}"
   end
@@ -137,7 +137,7 @@ nodefile.open(File::CREAT|File::WRONLY|File::TRUNC) do |f|
   f.puts "}"
 end
 
-cmd = "/usr/bin/puppet --config #{conf} --certname #{node.name} --debug #{nodefile} 2>&1"
+cmd = "/usr/bin/puppet --environment #{environment} --config #{conf} --certname #{node.name} --debug #{nodefile} 2>&1"
 puts cmd if options[:debug]
 report = []
 status = "broken"
