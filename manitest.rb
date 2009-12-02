@@ -59,6 +59,10 @@ optparse = OptionParser.new do |opts|
   opts.on( '-c', '--class CLASSA,CLASSB', 'node classes to use' ) do |c|
     options[:pclasses] = c.split(",")
   end
+  options[:manifest] = "/etc/puppet/manifests/site.pp"
+  opts.on( '-m', '--manifest FILE', "manifest file to use - defaults to #{options[:manifest]}" ) do |file|
+    options[:manifest] = file
+  end
 
   opts.on( '-h', '--help', 'Display this screen' ) do
     puts opts
@@ -135,7 +139,7 @@ nodefile = Pathname.new(options[:tmpdir]) + ".tmp_node.pp"
 conf.open(File::CREAT|File::WRONLY|File::TRUNC) {|f| f.write puppet_conf}
 nodefile.open(File::CREAT|File::WRONLY|File::TRUNC) do |f|
   f.puts "node '#{node.name}' {"
-  f.puts "import '/etc/puppet/manifests/site.pp'"
+  f.puts "import '#{options[:manifest]}'"
   klasses.each do |c|
     f.puts "\tinclude #{c}"
   end
