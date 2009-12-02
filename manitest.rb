@@ -1,10 +1,6 @@
 #!/usr/bin/ruby
-require 'puppet'
 require 'pathname'
 require 'optparse'
-
-Puppet[:config] = "/etc/puppet/puppet.conf"
-Puppet.parse_config
 
 trap("QUIT"){ exit(-1)}
 trap("INT"){ exit(-1)}
@@ -72,7 +68,7 @@ end
 optparse.parse!
 
 if options[:node].empty?
-  warn "Must provide node name, use -h for more info"
+  puts optparse
   exit 1
 end
 
@@ -81,6 +77,12 @@ unless File.exists? options[:node]
   warn "Unable to find file #{options[:node]}" unless File.exists? options[:node]
   exit 1
 end
+
+# load puppet infrastructure only after we've got some command line arguments
+require 'puppet'
+Puppet[:config] = "/etc/puppet/puppet.conf"
+Puppet.parse_config
+
 node = YAML.load_file options[:node]
 unless node.is_a?(Puppet::Node)
   warn "Invalid node file - you should use something from /var/lib/puppet/yaml/node directory"
